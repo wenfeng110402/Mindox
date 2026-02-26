@@ -1,0 +1,158 @@
+# Mindox - AI 几何学习工具
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Vue3-Vite-blue" alt="Vue3+Vite">
+  <img src="https://img.shields.io/badge/Express-SQLite-green" alt="Express+SQLite">
+  <img src="https://img.shields.io/badge/GeoGebra-Integrated-orange" alt="GeoGebra">
+</p>
+
+> 输入几何题目/上传图片 → AI 解析：已知条件、推导条件、隐藏条件 → 点击条件查看 GeoGebra 动态几何动画
+
+## 功能特性
+
+- **AI 智能解析**：自动提取已知条件、推导条件、隐藏条件
+- **GeoGebra 集成**：点击条件卡片，动态展示几何图形
+- **多平台 API 支持**：OpenAI、Gemini、豆包、自定义接口
+- **深色/浅色主题**：一键切换，舒适阅读
+- **数据持久化**：SQLite 本地存储，重启不丢失
+- **历史记录**：查看和管理历史解析记录
+
+## 快速开始
+
+### 1. 克隆项目
+
+```bash
+git clone <repo-url>
+cd qianwen-class
+```
+
+### 2. 安装依赖
+
+**后端：**
+```bash
+cd backend
+npm install
+```
+
+**前端：**
+```bash
+cd frontend
+npm install
+```
+
+### 3. 启动服务
+
+**后端（终端 1）：**
+```bash
+cd backend
+npm start
+# 服务运行在 http://localhost:3001
+```
+
+**前端（终端 2）：**
+```bash
+cd frontend
+npm run dev
+# 服务运行在 http://localhost:5173
+```
+
+### 4. 访问应用
+
+打开浏览器访问 http://localhost:5173
+
+首次进入会强制弹出 API 配置页面，配置完成后即可使用。
+
+## API 配置说明
+
+### OpenAI
+
+- API Type: `openai`
+- API Key: 你的 OpenAI API Key
+- 模型: `gpt-4` 或 `gpt-3.5-turbo`
+
+### Google Gemini
+
+- API Type: `gemini`
+- API Key: 你的 Google AI API Key
+- 模型: `gemini-pro` 或 `gemini-pro-vision`
+
+### 字节豆包
+
+- API Type: `doubao`
+- API Key: 你的豆包 API Key
+- API Endpoint: `https://ark.cn-beijing.volces.com/api/v3/chat/completions`
+- 模型: `doubao-pro-32k`
+
+### 自定义 API
+
+- API Type: `custom`
+- API Key: 你的 API Key
+- API Endpoint: 你的 API 端点（兼容 OpenAI 格式）
+
+## 部署指南
+
+### 前端部署（Vercel）
+
+1. 在 GitHub 上创建仓库并推送代码
+2. 访问 https://vercel.com 并导入项目
+3. 配置：
+   - Framework Preset: `Vite`
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+4. 添加环境变量（可选）：
+   - `VITE_API_URL`: 你的后端 API 地址
+5. 部署完成
+
+### 后端部署（Render）
+
+1. 在 GitHub 上创建仓库并推送代码
+2. 访问 https://render.com 并创建 Web Service
+3. 配置：
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+4. 环境变量：
+   - `PORT`: 3001
+5. 部署完成
+
+### 生产环境配置
+
+由于 Vercel 无法直接部署 Node.js 后端，建议：
+
+**方案 1：分别部署**
+- 前端 → Vercel
+- 后端 → Render/Railway/ Railway/ Cloudflare Workers
+
+**方案 2：使用 Vercel Serverless Functions**
+- 将后端代码放在 `api/` 目录
+- Vercel 会自动识别为 Serverless Functions
+
+## 项目结构
+
+```
+qianwen-class/
+├── frontend/               # Vue3 前端
+│   ├── src/
+│   │   ├── components/     # 组件
+│   │   ├── stores/        # Pinia 状态
+│   │   ├── styles/        # 样式
+│   │   └── App.vue
+│   └── vite.config.js
+│
+├── backend/                # Node.js 后端
+│   ├── src/
+│   │   └── index.js       # 主入口
+│   └── package.json
+│
+├── SPEC.md                # 规格文档
+└── README.md              # 本文件
+```
+
+## 技术栈
+
+- **前端**：Vue 3 + Vite + Pinia + Axios
+- **后端**：Express + better-sqlite3
+- **几何引擎**：GeoGebra iframe API
+
+## 许可证
+
+MIT License
