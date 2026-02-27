@@ -249,13 +249,14 @@ app.get('/api/history', (req, res) => {
 app.get('/api/history/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const problem = db.prepare('SELECT * FROM problems WHERE id = ?').get(id);
+    const problemId = parseInt(id, 10);
+    const problem = db.prepare('SELECT * FROM problems WHERE id = ?').get(problemId);
     
     if (!problem) {
       return res.status(404).json({ error: 'Problem not found' });
     }
 
-    const chats = db.prepare('SELECT role, content FROM chats WHERE problem_id = ? ORDER BY id ASC').all();
+    const chats = db.prepare('SELECT role, content FROM chats WHERE problem_id = ? ORDER BY id ASC').all(problemId);
     
     res.json({
       problem: {
@@ -276,6 +277,7 @@ app.get('/api/history/:id', (req, res) => {
 app.post('/api/history/:id/chats', (req, res) => {
   try {
     const { id } = req.params;
+    const problemId = parseInt(id, 10);
     const { chats } = req.body; // array of { role, content }
 
     if (!chats || !Array.isArray(chats)) {
@@ -285,12 +287,12 @@ app.post('/api/history/:id/chats', (req, res) => {
     // 这里采取简单的全量覆盖：先删除该问题原有的聊天，再重新插入完整的聊天记录
     // 这样在流式结束后，前端只需把当前的 chatHistory 整个发过来即可
     const deleteStmt = db.prepare('DELETE FROM chats WHERE problem_id = ?');
-    deleteStmt.run(id);
+    deleteStmt.run(problemId);
 
     const insertStmt = db.prepare('INSERT INTO chats (problem_id, role, content) VALUES (?, ?, ?)');
     const insertMany = db.transaction((chatsToInsert) => {
       for (const chat of chatsToInsert) {
-        insertStmt.run(id, chat.role, chat.content);
+        insertStmt.run(problemId, chat.role, chat.content);
       }
     });
     insertMany(chats);
