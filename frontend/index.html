@@ -1,13 +1,69 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mindox - AI 几何学习助手</title>
+    <title>Mindox • 几何智能解题助手</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: {
+          fontCache: 'global'
+        }
+      };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+      :root {
+        --bg-primary: #F9FAFB;
+        --bg-secondary: #F3F4F6;
+        --color-primary: #10A37F;
+        --color-secondary: #E5F6F3;
+        --text-title: #1D2939;
+        --text-subtitle: #667085;
+        --text-placeholder: #9CA3AF;
+        --btn-upload-bg: #F9FAFB;
+        --btn-upload-text: #374151;
+        --border-color: #E5E7EB;
+        --btn-hover-bg: #F3F4F6;
+      }
+      [data-theme="dark"] {
+        --bg-primary: #111827;
+        --bg-secondary: #1F2937;
+        --color-primary: #10A37F;
+        --color-secondary: #065F46;
+        --text-title: #F9FAFB;
+        --text-subtitle: #9CA3AF;
+        --text-placeholder: #4B5563;
+        --btn-upload-bg: #374151;
+        --btn-upload-text: #F9FAFB;
+        --border-color: #374151;
+        --btn-hover-bg: #374151;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden;
+        font-family: 'Inter', 'SF Pro Display', sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-title);
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+      #app {
+        height: 100%;
+        width: 100%;
+      }
+      * { box-sizing: border-box; }
+    </style>
   </head>
   <body>
     <div id="app"></div>
