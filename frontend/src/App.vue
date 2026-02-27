@@ -1198,4 +1198,182 @@ onMounted(() => {
   color: var(--text-title);
   font-family: inherit;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Initial View */
+  .main-title {
+    font-size: 24px;
+  }
+  
+  .sub-title {
+    font-size: 14px;
+    padding: 0 16px;
+  }
+  
+  .input-wrapper {
+    margin: 0 16px;
+  }
+  
+  /* Solving View - Single column */
+  .solving-view {
+    flex-direction: column;
+    padding-top: 60px;
+  }
+  
+  .left-panel {
+    width: 100%;
+    height: 50%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .left-panel-content {
+    padding: 16px;
+  }
+  
+  .right-panel {
+    width: 100%;
+    height: 50%;
+    padding: 16px;
+    overflow-y: auto;
+  }
+  
+  /* Panel sections */
+  .panel-section {
+    margin-bottom: 24px;
+  }
+  
+  .panel-section h3 {
+    font-size: 15px;
+  }
+  
+  .problem-info p, .proof-content p, .approach-text {
+    font-size: 14px;
+  }
+  
+  /* Chat */
+  .msg-content {
+    max-width: 85%;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+  
+  .msg-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  /* Bottom input */
+  .bottom-input-wrapper {
+    padding: 12px 16px;
+  }
+  
+  .followup-input {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+  
+  /* History sidebar */
+  .history-sidebar {
+    width: 100%;
+    right: -100%;
+  }
+  
+  /* SVG container */
+  .svg-graph-container {
+    padding: 8px;
+    margin-bottom: 16px;
+  }
+  
+  /* Condition items */
+  .condition-group {
+    margin-bottom: 16px;
+  }
+  
+  .condition-group h4 {
+    font-size: 13px;
+  }
+  
+  .condition-item {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  
+  /* Settings modal */
+  .settings-modal {
+    width: 90%;
+    max-width: 360px;
+    margin: 0 16px;
+  }
+  
+  .modal-content {
+    padding: 16px;
+  }
+  
+  .setting-row {
+    font-size: 13px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .setting-select {
+    width: 100%;
+    padding: 8px;
+  }
+  
+  /* Top nav */
+  .top-nav {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  
+  /* Initial view buttons */
+  .input-actions {
+    padding: 10px 12px;
+  }
+  
+  .upload-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
+  .send-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  /* History item */
+  .history-item {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .delete-btn {
+    opacity: 1;
+    padding: 6px;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 400px) {
+  .main-title {
+    font-size: 20px;
+  }
+  
+  .left-panel-content {
+    padding: 12px;
+  }
+  
+  .right-panel {
+    padding: 12px;
+  }
+  
+  .bottom-input-wrapper {
+    padding: 10px 12px;
+  }
+}
 </style>

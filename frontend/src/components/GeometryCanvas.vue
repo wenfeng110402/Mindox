@@ -414,4 +414,17 @@ function buildAngleLabelPos(angle) {
 .canvas-controls button:hover {
   background: var(--btn-hover-bg);
 }
+
+@media (max-width: 768px) {
+  .canvas-controls {
+    bottom: 12px;
+    right: 12px;
+  }
+  
+  .canvas-controls button {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
 </style>
