@@ -75,8 +75,8 @@
       <!-- Result State -->
       <div v-else-if="solution" class="result-content">
         
-        <!-- Mobile Layout -->
-        <div v-if="isMobile" class="mobile-layout">
+        <!-- Mobile Layout - controlled by CSS -->
+        <div class="mobile-layout">
           <div class="mobile-tabs">
             <button 
               v-for="tab in mobileTabs" 
@@ -101,7 +101,7 @@
               <div class="panel-section">
                 <h3>题目信息</h3>
                 <div class="problem-info">
-                  <p><strong>原题：</strong><span class="markdown-body" v-html="renderMarkdown(solution.originalProblem)"></span></p>
+                  <p><strong>原题：</strong><span v-html="renderMarkdown(solution.originalProblem)"></span></p>
                   <p><strong>题型：</strong>{{ solution.problemType || '未知' }}</p>
                   <p><strong>难度：</strong>{{ solution.difficulty || '未知' }}</p>
                 </div>
@@ -113,32 +113,32 @@
               <div class="panel-section">
                 <h3>标准证明过程</h3>
                 <div class="proof-content">
-                  <p v-for="(step, index) in solution.proofSteps" :key="index" class="markdown-body" v-html="renderMarkdown(step)"></p>
+                  <p v-for="(step, index) in solution.proofSteps" :key="index" v-html="renderMarkdown(step)"></p>
                 </div>
               </div>
             </div>
 
             <!-- 条件 Tab -->
             <div v-show="activeTab === 'conditions'" class="tab-content">
-              <div class="condition-group" v-if="solution.knownConditions && solution.knownConditions.length">
+              <div class="condition-group" v-if="solution.knownConditions?.length">
                 <h4>已知条件</h4>
-                <div class="condition-item" v-for="(cond, i) in solution.knownConditions" :key="'k'+i" v-html="renderMarkdown(cond)"></div>
+                <div class="condition-item" v-for="(cond, i) in solution.knownConditions" :key="'k'+i" v-html="cond"></div>
               </div>
-              <div class="condition-group" v-if="solution.derivedConditions && solution.derivedConditions.length">
+              <div class="condition-group" v-if="solution.derivedConditions?.length">
                 <h4>推导条件</h4>
-                <div class="condition-item" v-for="(cond, i) in solution.derivedConditions" :key="'d'+i" v-html="renderMarkdown(cond)"></div>
+                <div class="condition-item" v-for="(cond, i) in solution.derivedConditions" :key="'d'+i" v-html="cond"></div>
               </div>
-              <div class="condition-group" v-if="solution.hiddenConditions && solution.hiddenConditions.length">
+              <div class="condition-group" v-if="solution.hiddenConditions?.length">
                 <h4>隐藏条件</h4>
-                <div class="condition-item" v-for="(cond, i) in solution.hiddenConditions" :key="'h'+i" v-html="renderMarkdown(cond)"></div>
+                <div class="condition-item" v-for="(cond, i) in solution.hiddenConditions" :key="'h'+i" v-html="cond"></div>
               </div>
-              <div class="condition-group" v-if="showAuxLines && solution.auxLines && solution.auxLines.length">
+              <div class="condition-group" v-if="showAuxLines && solution.auxLines?.length">
                 <h4>辅助线</h4>
-                <div class="condition-item aux-line" v-for="(line, i) in solution.auxLines" :key="'aux'+i" v-html="renderMarkdown(line)"></div>
+                <div class="condition-item aux-line" v-for="(line, i) in solution.auxLines" :key="'aux'+i" v-html="line"></div>
               </div>
-              <div class="condition-group" v-if="solution.fullApproach && solution.fullApproach.length">
+              <div class="condition-group" v-if="solution.fullApproach?.length">
                 <h4>解题思路</h4>
-                <p class="approach-text" v-for="(line, i) in solution.fullApproach" :key="'a'+i" v-html="renderMarkdown(line)"></p>
+                <p class="approach-text" v-for="(line, i) in solution.fullApproach" :key="'a'+i" v-html="line"></p>
               </div>
             </div>
 
@@ -149,7 +149,7 @@
                 <div class="chat-history">
                   <div v-for="(msg, index) in chatHistory" :key="index" class="chat-message" :class="msg.role">
                     <div class="msg-avatar">{{ msg.role === 'user' ? 'U' : 'AI' }}</div>
-                    <div class="msg-content markdown-body" v-html="renderMarkdown(msg.content)"></div>
+                    <div class="msg-content" v-html="renderMarkdown(msg.content)"></div>
                   </div>
                 </div>
               </div>
@@ -165,8 +165,8 @@
           </section>
         </div>
 
-        <!-- Desktop Layout -->
-        <div v-if="!isMobile" class="desktop-layout">
+        <!-- Desktop Layout - always rendered, hidden by CSS on mobile -->
+        <div class="desktop-layout">
           <!-- Left Panel 60% -->
           <section class="left-panel">
           <div class="left-panel-content">
@@ -348,8 +348,7 @@ const availableModels = ref([{ id: 'gpt-4o', name: 'GPT-4o (加载中...)' }])
 const selectedModel = ref('gpt-4o')
 const showAuxLines = ref(true) // 添加辅助线提示的状态
 
-// Mobile detection - more reliable
-const isMobile = ref(window.innerWidth <= 900 || 'ontouchstart' in window)
+// Mobile detection - use CSS-friendly approach
 const activeTab = ref('diagram')
 
 const mobileTabs = [
@@ -360,9 +359,18 @@ const mobileTabs = [
   { id: 'chat', name: '问答' }
 ]
 
-window.addEventListener('resize', () => {
-  isMobile.value = window.innerWidth <= 900 || 'ontouchstart' in window
+// Check on mount and resize
+onMounted(() => {
+  checkDevice()
+  window.addEventListener('resize', checkDevice)
 })
+
+const checkDevice = () => {
+  // Simple check - if screen is small or has touch
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+  const isSmallScreen = window.innerWidth <= 900
+  // We'll use CSS to control display, but track state here
+}
 </script>
 
 <style scoped>
@@ -432,17 +440,41 @@ window.addEventListener('resize', () => {
   overflow: hidden;
 }
 
+/* Default: show desktop, hide mobile */
 .mobile-layout {
-  display: none;
-  flex-direction: column;
+  display: none !important;
+}
+
+.desktop-layout {
+  display: flex !important;
+  flex: 1;
   height: 100%;
   width: 100%;
 }
 
-.desktop-layout {
-  display: flex;
-  flex: 1;
-  height: 100%;
+/* Mobile: show mobile, hide desktop */
+@media (max-width: 900px), (pointer: coarse) {
+  .mobile-layout {
+    display: flex !important;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-primary);
+    z-index: 200;
+  }
+  
+  .desktop-layout {
+    display: none !important;
+  }
+  
+  .solving-view {
+    display: block !important;
+  }
 }
 
 /* Mobile Layout Styles */
