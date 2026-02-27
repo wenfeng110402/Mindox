@@ -348,8 +348,8 @@ const availableModels = ref([{ id: 'gpt-4o', name: 'GPT-4o (加载中...)' }])
 const selectedModel = ref('gpt-4o')
 const showAuxLines = ref(true) // 添加辅助线提示的状态
 
-// Mobile detection
-const isMobile = ref(window.innerWidth <= 768)
+// Mobile detection - more reliable
+const isMobile = ref(window.innerWidth <= 900 || 'ontouchstart' in window)
 const activeTab = ref('diagram')
 
 const mobileTabs = [
@@ -361,7 +361,7 @@ const mobileTabs = [
 ]
 
 window.addEventListener('resize', () => {
-  isMobile.value = window.innerWidth <= 768
+  isMobile.value = window.innerWidth <= 900 || 'ontouchstart' in window
 })
 </script>
 
@@ -906,8 +906,7 @@ window.addEventListener('resize', () => {
 
 .svg-graph-container :deep(svg) {
   max-width: 100%;
-  max-height: 300px;
-  color: var(--text-title);
+  max-height: 50vh;
   width: auto;
   height: auto;
 }
