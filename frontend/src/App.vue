@@ -714,6 +714,26 @@ onMounted(() => {
   background-color: var(--btn-hover-bg);
 }
 
+/* Result Content */
+.result-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mobile-layout {
+  display: none;
+}
+
+.desktop-layout {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
 /* Initial View */
 .initial-view {
   flex: 1;
@@ -1316,6 +1336,27 @@ onMounted(() => {
 
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
+  /* Result Content */
+  .result-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .mobile-layout {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .desktop-layout {
+    display: none;
+  }
+  
   /* Initial View */
   .main-title {
     font-size: 24px;
