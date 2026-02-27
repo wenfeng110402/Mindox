@@ -182,10 +182,12 @@
           v-else
           class="history-item" 
           v-for="item in historyList" 
-          :key="item.id" 
-          @click="loadHistoryItem(item.id)"
+          :key="item.id"
         >
-          {{ item.title }}
+          <span class="history-item-text" @click="loadHistoryItem(item.id)">{{ item.title }}</span>
+          <button class="delete-btn" @click.stop="deleteHistoryItem(item.id)" title="删除">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
         </div>
       </div>
     </aside>
@@ -344,6 +346,20 @@ const fetchHistoryList = async () => {
     }
   } catch (e) {
     console.error('Failed to fetch history:', e)
+  }
+}
+
+const deleteHistoryItem = async (id) => {
+  if (!confirm('确定要删除这条记录吗？')) return
+  try {
+    const res = await fetch(`${API_BASE}/history/${id}`, {
+      method: 'DELETE'
+    })
+    if (res.ok) {
+      historyList.value = historyList.value.filter(item => item.id !== id)
+    }
+  } catch (e) {
+    console.error('Failed to delete history:', e)
   }
 }
 
@@ -1088,6 +1104,9 @@ onMounted(() => {
 }
 
 .history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 12px 16px;
   margin-bottom: 8px;
   background-color: transparent;
@@ -1099,6 +1118,36 @@ onMounted(() => {
 
 .history-item:hover {
   background-color: var(--btn-hover-bg);
+}
+
+.history-item-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delete-btn {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-subtitle);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.history-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  color: #DC2626;
+  background-color: rgba(220, 38, 38, 0.1);
 }
 
 .empty-history {

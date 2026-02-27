@@ -304,6 +304,29 @@ app.post('/api/history/:id/chats', (req, res) => {
   }
 });
 
+// 7. 删除历史记录
+app.delete('/api/history/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const problemId = parseInt(id, 10);
+    
+    const deleteChats = db.prepare('DELETE FROM chats WHERE problem_id = ?');
+    deleteChats.run(problemId);
+    
+    const deleteProblem = db.prepare('DELETE FROM problems WHERE id = ?');
+    const result = deleteProblem.run(problemId);
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Problem not found' });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete History API Error:', error.message);
+    res.status(500).json({ error: 'Failed to delete history' });
+  }
+});
+
 // 生产环境：serve 前端静态文件
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static('../frontend/dist'));
