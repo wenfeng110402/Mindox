@@ -62,7 +62,7 @@
       </div>
     </main>
 
-    <!-- Solving View (60% / 40% Split) -->
+    <!-- Solving View -->
     <main v-else class="solving-view">
       <!-- Loading State -->
       <div v-if="isSolving" class="loading-state">
@@ -73,11 +73,10 @@
       </div>
 
       <!-- Result State -->
-      <template v-else-if="solution">
+      <div v-else-if="solution" class="result-content">
         
         <!-- Mobile Layout -->
-        <template v-if="isMobile">
-          <!-- Mobile Tabs -->
+        <div class="mobile-layout">
           <div class="mobile-tabs">
             <button 
               v-for="tab in mobileTabs" 
@@ -164,10 +163,10 @@
               <input type="text" v-model="followUpText" class="followup-input" :placeholder="isChatting ? 'AI正在回复...' : '继续追问...'" :disabled="isChatting" @keydown.enter.prevent="submitFollowUp" />
             </div>
           </section>
-        </template>
+        </div>
 
         <!-- Desktop Layout -->
-        <template v-else>
+        <div class="desktop-layout">
           <!-- Left Panel 60% -->
           <section class="left-panel">
           <div class="left-panel-content">
@@ -257,8 +256,8 @@
             </div>
           </div>
         </aside>
-        </template>
-        </template>
+        </div>
+        </div>
     </main>
 
     <!-- History Sidebar -->
@@ -1493,56 +1492,44 @@ onMounted(() => {
   }
 }
 
-/* Mobile Tabs */
+/* Mobile Tabs - default hidden, shown via JS */
 .mobile-tabs {
-  display: flex;
-  position: fixed;
-  top: 60px;
-  left: 0;
-  right: 0;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 50;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.tab-btn {
-  flex: 1;
-  min-width: 60px;
-  padding: 12px 8px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-subtitle);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.tab-btn.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+  display: none;
 }
 
 .mobile-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding-top: 100px;
+  display: none;
 }
 
-.tab-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
+@media (min-width: 769px) {
+  .mobile-tabs, .mobile-panel {
+    display: none !important;
+  }
 }
 
-.empty-chat {
-  text-align: center;
-  color: var(--text-subtitle);
-  padding: 40px 20px;
-  font-size: 14px;
+@media (max-width: 768px) {
+  .mobile-tabs {
+    display: flex;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    z-index: 50;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-top: 100px;
+  }
+
+  .desktop-layout {
+    display: none;
+  }
 }
 </style>
