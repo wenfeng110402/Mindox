@@ -74,8 +74,102 @@
 
       <!-- Result State -->
       <template v-else-if="solution">
-        <!-- Left Panel 60% -->
-        <section class="left-panel">
+        
+        <!-- Mobile Layout -->
+        <template v-if="isMobile">
+          <!-- Mobile Tabs -->
+          <div class="mobile-tabs">
+            <button 
+              v-for="tab in mobileTabs" 
+              :key="tab.id"
+              :class="['tab-btn', { active: activeTab === tab.id }]"
+              @click="activeTab = tab.id"
+            >
+              {{ tab.name }}
+            </button>
+          </div>
+
+          <section class="mobile-panel">
+            <!-- 图解 Tab -->
+            <div v-show="activeTab === 'diagram'" class="tab-content">
+              <div class="svg-graph-container" v-if="solution.svgDrawingSpec">
+                <GeometryCanvas :spec="solution.svgDrawingSpec" />
+              </div>
+            </div>
+
+            <!-- 题目 Tab -->
+            <div v-show="activeTab === 'problem'" class="tab-content">
+              <div class="panel-section">
+                <h3>题目信息</h3>
+                <div class="problem-info">
+                  <p><strong>原题：</strong><span class="markdown-body" v-html="renderMarkdown(solution.originalProblem)"></span></p>
+                  <p><strong>题型：</strong>{{ solution.problemType || '未知' }}</p>
+                  <p><strong>难度：</strong>{{ solution.difficulty || '未知' }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 解答 Tab -->
+            <div v-show="activeTab === 'solution'" class="tab-content">
+              <div class="panel-section">
+                <h3>标准证明过程</h3>
+                <div class="proof-content">
+                  <p v-for="(step, index) in solution.proofSteps" :key="index" class="markdown-body" v-html="renderMarkdown(step)"></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 条件 Tab -->
+            <div v-show="activeTab === 'conditions'" class="tab-content">
+              <div class="condition-group" v-if="solution.knownConditions && solution.knownConditions.length">
+                <h4>已知条件</h4>
+                <div class="condition-item" v-for="(cond, i) in solution.knownConditions" :key="'k'+i" v-html="renderMarkdown(cond)"></div>
+              </div>
+              <div class="condition-group" v-if="solution.derivedConditions && solution.derivedConditions.length">
+                <h4>推导条件</h4>
+                <div class="condition-item" v-for="(cond, i) in solution.derivedConditions" :key="'d'+i" v-html="renderMarkdown(cond)"></div>
+              </div>
+              <div class="condition-group" v-if="solution.hiddenConditions && solution.hiddenConditions.length">
+                <h4>隐藏条件</h4>
+                <div class="condition-item" v-for="(cond, i) in solution.hiddenConditions" :key="'h'+i" v-html="renderMarkdown(cond)"></div>
+              </div>
+              <div class="condition-group" v-if="showAuxLines && solution.auxLines && solution.auxLines.length">
+                <h4>辅助线</h4>
+                <div class="condition-item aux-line" v-for="(line, i) in solution.auxLines" :key="'aux'+i" v-html="renderMarkdown(line)"></div>
+              </div>
+              <div class="condition-group" v-if="solution.fullApproach && solution.fullApproach.length">
+                <h4>解题思路</h4>
+                <p class="approach-text" v-for="(line, i) in solution.fullApproach" :key="'a'+i" v-html="renderMarkdown(line)"></p>
+              </div>
+            </div>
+
+            <!-- 问答 Tab -->
+            <div v-show="activeTab === 'chat'" class="tab-content">
+              <div class="panel-section" v-if="chatHistory.length > 0">
+                <h3>互动问答</h3>
+                <div class="chat-history">
+                  <div v-for="(msg, index) in chatHistory" :key="index" class="chat-message" :class="msg.role">
+                    <div class="msg-avatar">{{ msg.role === 'user' ? 'U' : 'AI' }}</div>
+                    <div class="msg-content markdown-body" v-html="renderMarkdown(msg.content)"></div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="empty-chat">
+                暂无问答记录
+              </div>
+            </div>
+
+            <!-- Bottom Input -->
+            <div class="bottom-input-wrapper">
+              <input type="text" v-model="followUpText" class="followup-input" :placeholder="isChatting ? 'AI正在回复...' : '继续追问...'" :disabled="isChatting" @keydown.enter.prevent="submitFollowUp" />
+            </div>
+          </section>
+        </template>
+
+        <!-- Desktop Layout -->
+        <template v-else>
+          <!-- Left Panel 60% -->
+          <section class="left-panel">
           <div class="left-panel-content">
             <div class="panel-section">
               <h3>题目信息</h3>
@@ -122,7 +216,7 @@
           </div>
         </section>
 
-        <!-- Right Panel 40% -->
+        <!-- Right Panel 40% (Desktop only) -->
         <aside class="right-panel">
           <div class="conditions-panel">
             <template v-if="solution.svgDrawingSpec">
@@ -163,7 +257,8 @@
             </div>
           </div>
         </aside>
-      </template>
+        </template>
+        </template>
     </main>
 
     <!-- History Sidebar -->
@@ -253,6 +348,25 @@ const solution = ref(null)
 const availableModels = ref([{ id: 'gpt-4o', name: 'GPT-4o (加载中...)' }])
 const selectedModel = ref('gpt-4o')
 const showAuxLines = ref(true) // 添加辅助线提示的状态
+
+// Mobile tabs
+const isMobile = ref(false)
+const activeTab = ref('diagram')
+
+const mobileTabs = [
+  { id: 'diagram', name: '图解' },
+  { id: 'problem', name: '题目' },
+  { id: 'solution', name: '解答' },
+  { id: 'conditions', name: '条件' },
+  { id: 'chat', name: '问答' }
+]
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+  if (isMobile.value && !activeTab.value) {
+    activeTab.value = 'diagram'
+  }
+}
 
 // 图片上传状态
 const uploadedImage = ref(null)
@@ -538,6 +652,8 @@ const submitFollowUp = async () => {
 onMounted(() => {
   document.documentElement.setAttribute('data-theme', theme.value)
   fetchModels()
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
 })
 </script>
 
@@ -1375,5 +1491,58 @@ onMounted(() => {
   .bottom-input-wrapper {
     padding: 10px 12px;
   }
+}
+
+/* Mobile Tabs */
+.mobile-tabs {
+  display: flex;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 50;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-btn {
+  flex: 1;
+  min-width: 60px;
+  padding: 12px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-subtitle);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.mobile-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: 100px;
+}
+
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.empty-chat {
+  text-align: center;
+  color: var(--text-subtitle);
+  padding: 40px 20px;
+  font-size: 14px;
 }
 </style>
