@@ -76,7 +76,7 @@
       <div v-else-if="solution" class="result-content">
         
         <!-- Mobile Layout -->
-        <div class="mobile-layout">
+        <div v-if="isMobile" class="mobile-layout">
           <div class="mobile-tabs">
             <button 
               v-for="tab in mobileTabs" 
@@ -166,7 +166,7 @@
         </div>
 
         <!-- Desktop Layout -->
-        <div class="desktop-layout">
+        <div v-if="!isMobile" class="desktop-layout">
           <!-- Left Panel 60% -->
           <section class="left-panel">
           <div class="left-panel-content">
@@ -348,8 +348,8 @@ const availableModels = ref([{ id: 'gpt-4o', name: 'GPT-4o (加载中...)' }])
 const selectedModel = ref('gpt-4o')
 const showAuxLines = ref(true) // 添加辅助线提示的状态
 
-// Mobile tabs
-const isMobile = ref(false)
+// Mobile detection
+const isMobile = ref(window.innerWidth <= 768)
 const activeTab = ref('diagram')
 
 const mobileTabs = [
@@ -360,299 +360,8 @@ const mobileTabs = [
   { id: 'chat', name: '问答' }
 ]
 
-const checkMobile = () => {
+window.addEventListener('resize', () => {
   isMobile.value = window.innerWidth <= 768
-  if (isMobile.value && !activeTab.value) {
-    activeTab.value = 'diagram'
-  }
-}
-
-// 图片上传状态
-const uploadedImage = ref(null)
-const fileInput = ref(null)
-
-const triggerFileInput = () => {
-  fileInput.value.click()
-}
-
-const processImageFile = (file) => {
-  if (!file || !file.type.startsWith('image/')) {
-    alert('请上传有效的图片文件')
-    return
-  }
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    uploadedImage.value = e.target.result
-  }
-  reader.readAsDataURL(file)
-}
-
-const handleFileUpload = (e) => {
-  const file = e.target.files[0]
-  processImageFile(file)
-  e.target.value = '' // 清空 input 以便重复上传同一文件
-}
-
-const handlePaste = (e) => {
-  const items = e.clipboardData?.items
-  if (!items) return
-
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') !== -1) {
-      const file = items[i].getAsFile()
-      processImageFile(file)
-      // 阻止默认粘贴行为，避免图片被当作文本处理或出现异常
-      e.preventDefault()
-      break
-    }
-  }
-}
-
-const removeImage = () => {
-  uploadedImage.value = null
-}
-
-const renderMarkdown = (text) => {
-  if (!text) return ''
-  // 保护 LaTeX 的 \( \) 和 \[ \] 符号不被 marked 吞掉反斜杠
-  let preProcessed = text
-    .replace(/\\\(/g, '\\\\(')
-    .replace(/\\\)/g, '\\\\)')
-    .replace(/\\\[/g, '\\\\[')
-    .replace(/\\\]/g, '\\\\]');
-
-  // 使用 marked 解析，并用 dompurify 净化防止 XSS
-  return DOMPurify.sanitize(marked.parse(preProcessed))
-}
-
-const fetchModels = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/models`)
-    const data = await res.json()
-    if (data.models && data.models.length > 0) {
-      availableModels.value = data.models
-      // 如果当前选中的模型不在新列表里，默认选第一个
-      if (!data.models.find(m => m.id === selectedModel.value)) {
-        selectedModel.value = data.models[0].id
-      }
-    }
-  } catch (e) {
-    console.error('获取模型失败', e)
-  }
-}
-
-const toggleTheme = () => {
-  theme.value = theme.value === 'light' ? 'dark' : 'light'
-  document.documentElement.setAttribute('data-theme', theme.value)
-}
-
-const toggleSettings = () => {
-  showSettings.value = true
-}
-
-const fetchHistoryList = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/history`)
-    if (res.ok) {
-      const data = await res.json()
-      historyList.value = data.history || []
-    }
-  } catch (e) {
-    console.error('Failed to fetch history:', e)
-  }
-}
-
-const deleteHistoryItem = async (id) => {
-  if (!confirm('确定要删除这条记录吗？')) return
-  try {
-    const res = await fetch(`${API_BASE}/history/${id}`, {
-      method: 'DELETE'
-    })
-    if (res.ok) {
-      historyList.value = historyList.value.filter(item => item.id !== id)
-    }
-  } catch (e) {
-    console.error('Failed to delete history:', e)
-  }
-}
-
-const loadHistoryItem = async (id) => {
-  showHistory.value = false
-  try {
-    view.value = 'solving'
-    isSolving.value = true
-    const res = await fetch(`${API_BASE}/history/${id}`)
-    if (res.ok) {
-      const data = await res.json()
-      solution.value = data.problem.solution
-      chatHistory.value = data.chats || []
-      currentProblemId.value = id
-    }
-  } catch (e) {
-    console.error('Failed to load history item:', e)
-  } finally {
-    isSolving.value = false
-    // 等待 DOM 切换完毕后渲染
-    if (solution.value) {
-      renderMathJax()
-    }
-  }
-}
-
-const renderMathJax = () => {
-  nextTick(() => {
-    if (window.MathJax) {
-      const container = document.querySelector('.solving-view') || document.body
-      window.MathJax.typesetClear([container])
-      window.MathJax.typesetPromise([container]).catch((err) => console.log('MathJax error:', err))
-    }
-  })
-}
-
-const toggleHistory = () => {
-  showHistory.value = !showHistory.value
-  if (showHistory.value) {
-    fetchHistoryList()
-  }
-}
-
-const startNewProblem = () => {
-  view.value = 'initial'
-  inputText.value = ''
-  followUpText.value = ''
-  activeCondition.value = null
-  chatHistory.value = []
-  solution.value = null
-  currentProblemId.value = null
-  uploadedImage.value = null
-}
-
-const submitProblem = async () => {
-  if (!inputText.value.trim() && !uploadedImage.value) return
-  
-  view.value = 'solving'
-  isSolving.value = true
-  
-  try {
-    const payload = {
-      problem: inputText.value.trim() || '请解析图中的题目并给出解答',
-      model: selectedModel.value
-    }
-    
-    if (uploadedImage.value) {
-      payload.image = uploadedImage.value
-    }
-
-    const res = await fetch(`${API_BASE}/solve`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-    
-    if (res.ok) {
-      const data = await res.json()
-      solution.value = data
-      currentProblemId.value = data.id // Save the ID from backend
-    } else {
-      console.error('API 返回错误状态')
-    }
-  } catch (e) {
-    console.error('解题请求失败:', e)
-  } finally {
-    isSolving.value = false
-    // 必须在 isSolving 变为 false，DOM 完全更新后，再进行公式渲染
-    if (solution.value) {
-      renderMathJax()
-    }
-  }
-}
-
-const submitFollowUp = async () => {
-  const text = followUpText.value.trim()
-  if (!text || isChatting.value) return
-
-  chatHistory.value.push({ role: 'user', content: text })
-  followUpText.value = ''
-  isChatting.value = true
-
-  // 先在聊天记录里推入一个空的 assistant 消息占位
-  chatHistory.value.push({ role: 'assistant', content: '' })
-  const currentMsgIndex = chatHistory.value.length - 1
-
-  try {
-    // 构造发给后端的历史消息格式（排除掉刚刚放入的空占位消息）
-    const messages = chatHistory.value.slice(0, -1).map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }))
-    
-    const res = await fetch(`${API_BASE}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        messages: messages,
-        model: selectedModel.value
-      })
-    })
-    
-    if (res.ok && res.body) {
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        buffer += decoder.decode(value, { stream: true })
-        let newlineIdx;
-        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, newlineIdx).trim()
-          buffer = buffer.slice(newlineIdx + 1)
-          
-          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-            try {
-              const data = JSON.parse(line.slice(6))
-              const deltaContent = data.choices[0]?.delta?.content || ''
-              if (deltaContent) {
-                chatHistory.value[currentMsgIndex].content += deltaContent
-              }
-            } catch (e) {
-              // 忽略解析不完整块的错误
-            }
-          }
-        }
-      }
-      
-      // 流式传输完毕后，触发一次 MathJax 渲染
-      renderMathJax()
-
-      // 保存聊天记录到数据库
-      if (currentProblemId.value) {
-        fetch(`${API_BASE}/history/${currentProblemId.value}/chats`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chats: chatHistory.value })
-        }).catch(err => console.error('同步聊天记录失败:', err))
-      }
-    } else {
-      chatHistory.value[currentMsgIndex].content = '网络错误，无法连接到 AI 接口。'
-    }
-  } catch (e) {
-    console.error('追问请求失败:', e)
-    chatHistory.value[currentMsgIndex].content = '请求失败，请检查网络或稍后再试。'
-  } finally {
-    isChatting.value = false
-  }
-}
-
-onMounted(() => {
-  document.documentElement.setAttribute('data-theme', theme.value)
-  fetchModels()
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
 })
 </script>
 
@@ -725,13 +434,67 @@ onMounted(() => {
 
 .mobile-layout {
   display: none;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
 }
 
 .desktop-layout {
   display: flex;
   flex: 1;
   height: 100%;
-  overflow: hidden;
+}
+
+/* Mobile Layout Styles */
+.mobile-layout .mobile-tabs {
+  display: flex;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.mobile-layout .tab-btn {
+  flex: 1;
+  padding: 14px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-subtitle);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.mobile-layout .tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.mobile-layout .mobile-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.mobile-layout .tab-content {
+  display: none;
+}
+
+.mobile-layout .bottom-input-wrapper {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.mobile-layout .followup-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-title);
+  font-size: 15px;
 }
 
 /* Initial View */
@@ -1137,12 +900,16 @@ onMounted(() => {
   padding: 16px;
   margin-bottom: 24px;
   color: var(--text-title);
+  overflow: auto;
+  max-width: 100%;
 }
 
 .svg-graph-container :deep(svg) {
   max-width: 100%;
   max-height: 300px;
   color: var(--text-title);
+  width: auto;
+  height: auto;
 }
 
 .svg-graph-container :deep(svg text) {
