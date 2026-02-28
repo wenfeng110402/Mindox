@@ -1,5 +1,6 @@
 <template>
   <div class="app-container" :class="theme">
+    <div v-if="debugMobile" class="mobile-debug">isMobile: {{ isMobile }} · UA: {{ uaSnippet }}</div>
     <!-- Top Navigation Bar -->
     <nav class="top-nav">
       <div class="nav-left">
@@ -178,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import GeometryCanvas from './components/GeometryCanvas.vue'
@@ -204,7 +205,11 @@ const availableModels = ref([{ id: 'gpt-4o', name: 'GPT-4o (加载中...)' }])
 const selectedModel = ref('gpt-4o')
 const showAuxLines = ref(true) // 添加辅助线提示的状态
 
-// Mobile detection - use CSS-friendly approach
+// Mobile detection - enhanced
+const isMobile = ref(false)
+const debugMobile = ref(false)
+const uaSnippet = ref('')
+
 const activeTab = ref('diagram')
 
 const mobileTabs = [
@@ -215,18 +220,50 @@ const mobileTabs = [
   { id: 'chat', name: '问答' }
 ]
 
-// Check on mount and resize
+function checkIfMobile() {
+  if (typeof window === 'undefined') return false
+  const ua = navigator.userAgent || ''
+  uaSnippet.value = ua.slice(0, 120)
+
+  // Prefer userAgentData when available (client hints)
+  try {
+    const uaData = navigator.userAgentData
+    if (uaData && typeof uaData.mobile === 'boolean') {
+      return uaData.mobile
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  const isiPhone = /iPhone|iPod/.test(ua) && !window.MSStream
+  const isAndroid = /Android/.test(ua)
+  const touch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || 'ontouchstart' in window
+  const smallWidth = window.innerWidth <= 768
+
+  return isiPhone || isAndroid || touch || smallWidth
+}
+
+function updateDeviceType() {
+  isMobile.value = checkIfMobile()
+}
+
 onMounted(() => {
-  checkDevice()
-  window.addEventListener('resize', checkDevice)
+  // enable debug overlay with ?debugMobile=1
+  try {
+    debugMobile.value = !!new URLSearchParams(window.location.search).get('debugMobile')
+  } catch (e) {
+    debugMobile.value = false
+  }
+
+  updateDeviceType()
+  window.addEventListener('resize', updateDeviceType)
+  window.addEventListener('orientationchange', updateDeviceType)
 })
 
-const checkDevice = () => {
-  // Simple check - if screen is small or has touch
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-  const isSmallScreen = window.innerWidth <= 900
-  // We'll use CSS to control display, but track state here
-}
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateDeviceType)
+  window.removeEventListener('orientationchange', updateDeviceType)
+})
 </script>
 
 <style scoped>
@@ -251,6 +288,18 @@ const checkDevice = () => {
   justify-content: space-between;
   align-items: center;
   z-index: 100;
+}
+
+.mobile-debug {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  z-index: 9999;
+  font-size: 12px;
 }
 
 .nav-left, .nav-right {
