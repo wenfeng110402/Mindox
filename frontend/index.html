@@ -2,7 +2,12 @@
 <html lang="zh-CN" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- iOS / Mobile friendly meta -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#ffffff">
     <title>Mindox • 几何智能解题助手</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,6 +72,31 @@
   </head>
   <body>
     <div id="app"></div>
+    <!-- Debug overlay for devices when Vue overlay not visible -->
+    <script>
+      try {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('debugMobile')) {
+          const badge = document.createElement('div');
+          badge.id = 'mobile-debug-static';
+          const ua = navigator.userAgent || '';
+          badge.textContent = 'isMobile: ' + (/(iPhone|Android|Mobile)/i.test(ua) || navigator.maxTouchPoints > 0) + ' · UA: ' + ua.slice(0,120);
+          Object.assign(badge.style, {
+            position: 'fixed',
+            top: '72px',
+            right: '12px',
+            background: 'rgba(0,0,0,0.65)',
+            color: '#fff',
+            padding: '6px 10px',
+            borderRadius: '8px',
+            zIndex: 100000,
+            fontSize: '12px',
+            maxWidth: '60%'
+          });
+          document.body.appendChild(badge);
+        }
+      } catch (e) { /* ignore */ }
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
