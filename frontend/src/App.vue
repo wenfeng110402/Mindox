@@ -220,6 +220,102 @@ const mobileTabs = [
   { id: 'chat', name: '问答' }
 ]
 
+// UI state not yet defined
+const uploadedImage = ref(null)
+const fileInput = ref(null)
+
+// Utilities
+function renderMarkdown(md) {
+  try {
+    const html = marked.parse(md || '')
+    return DOMPurify.sanitize(html)
+  } catch (e) {
+    return md || ''
+  }
+}
+
+// Basic UI actions (minimal implementations)
+function startNewProblem() {
+  view.value = 'initial'
+  inputText.value = ''
+  uploadedImage.value = null
+  solution.value = null
+}
+
+function toggleTheme() {
+  theme.value = theme.value === 'light' ? 'dark' : 'light'
+  try { document.documentElement.setAttribute('data-theme', theme.value) } catch (e) {}
+}
+
+function toggleHistory() {
+  showHistory.value = !showHistory.value
+}
+
+function toggleSettings() {
+  showSettings.value = !showSettings.value
+}
+
+function triggerFileInput() {
+  if (fileInput.value) fileInput.value.click()
+}
+
+function handleFileUpload(e) {
+  const f = e.target.files && e.target.files[0]
+  if (!f) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    uploadedImage.value = reader.result
+  }
+  reader.readAsDataURL(f)
+}
+
+function removeImage() {
+  uploadedImage.value = null
+  if (fileInput.value) fileInput.value.value = null
+}
+
+function handlePaste(e) {
+  // try to extract image from clipboard
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items
+  for (const item of items) {
+    if (item.type.indexOf('image') === 0) {
+      const blob = item.getAsFile()
+      const reader = new FileReader()
+      reader.onload = () => uploadedImage.value = reader.result
+      reader.readAsDataURL(blob)
+      e.preventDefault()
+      return
+    }
+  }
+}
+
+function submitProblem() {
+  // minimal: set solution locally so UI updates
+  view.value = 'solving'
+  isSolving.value = true
+  solution.value = null
+  setTimeout(() => {
+    solution.value = {
+      originalProblem: inputText.value || '（来自图片）',
+      problemType: '几何题',
+      difficulty: '中等',
+      svgDrawingSpec: null
+    }
+    isSolving.value = false
+  }, 600)
+}
+
+function loadHistoryItem(id) {
+  const item = historyList.value.find(h => h.id === id)
+  if (!item) return
+  inputText.value = item.content || item.title || ''
+  view.value = 'initial'
+}
+
+function deleteHistoryItem(id) {
+  historyList.value = historyList.value.filter(h => h.id !== id)
+}
+
 function checkIfMobile() {
   if (typeof window === 'undefined') return false
   const ua = navigator.userAgent || ''
