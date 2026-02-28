@@ -495,6 +495,7 @@ const checkDevice = () => {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  transition: color 0.3s, border-bottom-color 0.3s; /* 添加过渡效果 */
 }
 
 .mobile-layout .tab-btn.active {
