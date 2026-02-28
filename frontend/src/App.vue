@@ -75,189 +75,45 @@
       <!-- Result State -->
       <div v-else-if="solution" class="result-content">
         
-        <!-- Mobile Layout - controlled by CSS -->
-        <div class="mobile-layout">
-          <div class="mobile-tabs">
-            <button 
-              v-for="tab in mobileTabs" 
-              :key="tab.id"
-              :class="['tab-btn', { active: activeTab === tab.id }]"
-              @click="activeTab = tab.id"
-            >
-              {{ tab.name }}
-            </button>
-          </div>
-
-          <section class="mobile-panel">
-            <!-- 图解 Tab -->
-            <div v-show="activeTab === 'diagram'" class="tab-content">
-              <div class="svg-graph-container" v-if="solution.svgDrawingSpec">
-                <GeometryCanvas :spec="solution.svgDrawingSpec" />
-              </div>
-            </div>
-
-            <!-- 题目 Tab -->
-            <div v-show="activeTab === 'problem'" class="tab-content">
-              <div class="panel-section">
-                <h3>题目信息</h3>
-                <div class="problem-info">
-                  <p><strong>原题：</strong><span v-html="renderMarkdown(solution.originalProblem)"></span></p>
-                  <p><strong>题型：</strong>{{ solution.problemType || '未知' }}</p>
-                  <p><strong>难度：</strong>{{ solution.difficulty || '未知' }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 解答 Tab -->
-            <div v-show="activeTab === 'solution'" class="tab-content">
-              <div class="panel-section">
-                <h3>标准证明过程</h3>
-                <div class="proof-content">
-                  <p v-for="(step, index) in solution.proofSteps" :key="index" v-html="renderMarkdown(step)"></p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 条件 Tab -->
-            <div v-show="activeTab === 'conditions'" class="tab-content">
-              <div class="condition-group" v-if="solution.knownConditions?.length">
-                <h4>已知条件</h4>
-                <div class="condition-item" v-for="(cond, i) in solution.knownConditions" :key="'k'+i" v-html="cond"></div>
-              </div>
-              <div class="condition-group" v-if="solution.derivedConditions?.length">
-                <h4>推导条件</h4>
-                <div class="condition-item" v-for="(cond, i) in solution.derivedConditions" :key="'d'+i" v-html="cond"></div>
-              </div>
-              <div class="condition-group" v-if="solution.hiddenConditions?.length">
-                <h4>隐藏条件</h4>
-                <div class="condition-item" v-for="(cond, i) in solution.hiddenConditions" :key="'h'+i" v-html="cond"></div>
-              </div>
-              <div class="condition-group" v-if="showAuxLines && solution.auxLines?.length">
-                <h4>辅助线</h4>
-                <div class="condition-item aux-line" v-for="(line, i) in solution.auxLines" :key="'aux'+i" v-html="line"></div>
-              </div>
-              <div class="condition-group" v-if="solution.fullApproach?.length">
-                <h4>解题思路</h4>
-                <p class="approach-text" v-for="(line, i) in solution.fullApproach" :key="'a'+i" v-html="line"></p>
-              </div>
-            </div>
-
-            <!-- 问答 Tab -->
-            <div v-show="activeTab === 'chat'" class="tab-content">
-              <div class="panel-section" v-if="chatHistory.length > 0">
-                <h3>互动问答</h3>
-                <div class="chat-history">
-                  <div v-for="(msg, index) in chatHistory" :key="index" class="chat-message" :class="msg.role">
-                    <div class="msg-avatar">{{ msg.role === 'user' ? 'U' : 'AI' }}</div>
-                    <div class="msg-content" v-html="renderMarkdown(msg.content)"></div>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="empty-chat">
-                暂无问答记录
-              </div>
-            </div>
-
-            <!-- Bottom Input -->
-            <div class="bottom-input-wrapper">
-              <input type="text" v-model="followUpText" class="followup-input" :placeholder="isChatting ? 'AI正在回复...' : '继续追问...'" :disabled="isChatting" @keydown.enter.prevent="submitFollowUp" />
-            </div>
-          </section>
-        </div>
-
-        <!-- Desktop Layout - always rendered, hidden by CSS on mobile -->
-        <div class="desktop-layout">
-          <!-- Left Panel 60% -->
-          <section class="left-panel">
-          <div class="left-panel-content">
-            <div class="panel-section">
+        <!-- Desktop Layout: Keep the two-column layout -->
+        <div class="desktop-layout" v-if="!isMobile">
+          <div class="left-panel">
+            <!-- Problem Information -->
+            <div class="problem-info">
               <h3>题目信息</h3>
-              <div class="problem-info">
-                <p><strong>原题：</strong><span class="markdown-body" v-html="renderMarkdown(solution.originalProblem)"></span></p>
-                <p><strong>题型：</strong>{{ solution.problemType || '未知' }}</p>
-                <p><strong>难度：</strong>{{ solution.difficulty || '未知' }}</p>
-              </div>
-            </div>
-
-            <div class="panel-section">
-              <h3>标准证明过程</h3>
-              <div class="proof-content">
-                <p v-for="(step, index) in solution.proofSteps" :key="index" class="markdown-body" v-html="renderMarkdown(step)"></p>
-              </div>
-            </div>
-
-            <div class="panel-section" v-if="chatHistory.length > 0">
-              <h3>互动问答</h3>
-              <div class="chat-history">
-                <div 
-                  v-for="(msg, index) in chatHistory" 
-                  :key="index"
-                  class="chat-message"
-                  :class="msg.role"
-                >
-                  <div class="msg-avatar">{{ msg.role === 'user' ? 'U' : 'AI' }}</div>
-                  <div class="msg-content markdown-body" v-html="renderMarkdown(msg.content)"></div>
-                </div>
-              </div>
+              <p><strong>原题：</strong><span v-html="renderMarkdown(solution.originalProblem)"></span></p>
+              <p><strong>题型：</strong>{{ solution.problemType || '未知' }}</p>
+              <p><strong>难度：</strong>{{ solution.difficulty || '未知' }}</p>
             </div>
           </div>
-          
-          <!-- Bottom Input in Solving View -->
-          <div class="bottom-input-wrapper">
-            <input 
-              type="text" 
-              v-model="followUpText"
-              class="followup-input" 
-              :placeholder="isChatting ? 'AI正在回复...' : '继续追问...'"
-              :disabled="isChatting"
-              @keydown.enter.prevent="submitFollowUp"
-            />
-          </div>
-        </section>
-
-        <!-- Right Panel 40% (Desktop only) -->
-        <aside class="right-panel">
-          <div class="conditions-panel">
-            <template v-if="solution.svgDrawingSpec">
-              <h3>几何图解 (AI生成)</h3>
-              <div class="svg-graph-container">
-                <GeometryCanvas :spec="solution.svgDrawingSpec" />
-              </div>
-            </template>
-
-            <h3>几何条件拆解</h3>
-            
-            <div class="condition-group" v-if="solution.knownConditions && solution.knownConditions.length">
-              <h4>已知条件</h4>
-              <div class="condition-item" v-for="(cond, i) in solution.knownConditions" :key="'k'+i" v-html="renderMarkdown(cond)"></div>
-            </div>
-
-            <div class="condition-group" v-if="solution.derivedConditions && solution.derivedConditions.length">
-              <h4>推导条件</h4>
-              <div class="condition-item interactive" v-for="(cond, i) in solution.derivedConditions" :key="'d'+i" v-html="renderMarkdown(cond)">
-              </div>
-            </div>
-
-            <div class="condition-group" v-if="solution.hiddenConditions && solution.hiddenConditions.length">
-              <h4>隐藏条件</h4>
-              <div class="condition-item" v-for="(cond, i) in solution.hiddenConditions" :key="'h'+i" v-html="renderMarkdown(cond)"></div>
-            </div>
-
-            <!-- 根据设置控制是否显示辅助线信息 -->
-            <div class="condition-group" v-if="showAuxLines && solution.auxLines && solution.auxLines.length">
-              <h4>💡 辅助线提示</h4>
-              <div class="condition-item aux-line" v-for="(line, i) in solution.auxLines" :key="'aux'+i" v-html="renderMarkdown(line)">
-              </div>
-            </div>
-            
-            <div class="condition-group" v-if="solution.fullApproach && solution.fullApproach.length">
-              <h4>完整解题思路</h4>
-              <p class="approach-text markdown-body" v-for="(line, i) in solution.fullApproach" :key="'a'+i" v-html="renderMarkdown(line)"></p>
+          <div class="right-panel">
+            <!-- Diagram -->
+            <div class="svg-graph-container" v-if="solution.svgDrawingSpec">
+              <GeometryCanvas :spec="solution.svgDrawingSpec" />
             </div>
           </div>
-        </aside>
         </div>
+
+        <!-- Mobile Layout: Redesigned for single-column layout -->
+        <div class="mobile-layout" v-else>
+          <div class="problem-header">
+            <h3>题目信息</h3>
+            <p><strong>题型：</strong>{{ solution.problemType || '未知' }}</p>
+            <p><strong>难度：</strong>{{ solution.difficulty || '未知' }}</p>
+          </div>
+
+          <div class="problem-content">
+            <p><strong>原题：</strong><span v-html="renderMarkdown(solution.originalProblem)"></span></p>
+          </div>
+
+          <div class="diagram-section" v-if="solution.svgDrawingSpec">
+            <h3>图解</h3>
+            <div class="svg-graph-container">
+              <GeometryCanvas :spec="solution.svgDrawingSpec" />
+            </div>
+          </div>
         </div>
+      </div>
     </main>
 
     <!-- History Sidebar -->
