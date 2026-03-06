@@ -1,21 +1,23 @@
-# Mindox - AI 几何学习工具
+# Mindox - AI 几何智能解题助手
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue3-Vite-blue" alt="Vue3+Vite">
   <img src="https://img.shields.io/badge/Express-SQLite-green" alt="Express+SQLite">
-  <img src="https://img.shields.io/badge/GeoGebra-Integrated-orange" alt="GeoGebra">
+  <img src="https://img.shields.io/badge/Hack_Club_AI-Powered-orange" alt="Hack Club AI">
 </p>
 
-> 输入几何题目/上传图片 → AI 解析：已知条件、推导条件、隐藏条件 → 点击条件查看 GeoGebra 动态几何动画
+> 输入几何题目或上传图片 → AI 解析已知条件、推导步骤与隐藏条件 → SVG 动态几何图形渲染 → 苏格拉底式追问导师
 
 ## 功能特性
 
-- **AI 智能解析**：自动提取已知条件、推导条件、隐藏条件
-- **GeoGebra 集成**：点击条件卡片，动态展示几何图形
-- **多平台 API 支持**：OpenAI、Gemini、豆包、自定义接口
-- **深色/浅色主题**：一键切换，舒适阅读
-- **数据持久化**：SQLite 本地存储，重启不丢失
-- **历史记录**：查看和管理历史解析记录
+- **AI 智能解题**：自动提取已知条件、推导条件、隐藏条件，给出严密的分步证明
+- **SVG 几何可视化**：AI 根据题意生成精确的 SVG 几何图形，无需 GeoGebra 插件
+- **多模态输入**：支持纯文字描述或直接粘贴/上传几何题图片（PNG/JPG）
+- **流式追问对话**：解题后可与 AI 导师实时对话，引导式启发学习
+- **多模型支持**：内置 Grok、Gemini、Step 等多个顶尖 AI 模型可切换
+- **深色/浅色主题**：一键切换，适配系统偏好
+- **历史记录**：SQLite 本地持久化存储，重启不丢失解题历史与对话
+- **响应式设计**：桌面、平板、手机均可使用
 
 ## 快速开始
 
@@ -23,10 +25,21 @@
 
 ```bash
 git clone <repo-url>
-cd qianwen-class
+cd Mindox
 ```
 
-### 2. 安装依赖
+### 2. 配置环境变量
+
+在 `backend/` 目录下创建 `.env` 文件：
+
+```env
+HACKCLUB_API_KEY=你的_Hack_Club_API_Key
+PORT=3001
+```
+
+> Hack Club AI API Key 可在 [https://ai.hackclub.com](https://ai.hackclub.com) 申请。
+
+### 3. 安装依赖
 
 **后端：**
 ```bash
@@ -40,7 +53,7 @@ cd frontend
 npm install
 ```
 
-### 3. 启动服务
+### 4. 启动服务
 
 **后端（终端 1）：**
 ```bash
@@ -56,102 +69,120 @@ npm run dev
 # 服务运行在 http://localhost:5173
 ```
 
-### 4. 访问应用
+### 5. 访问应用
 
-打开浏览器访问 http://localhost:5173
+打开浏览器访问 [http://localhost:5173](http://localhost:5173)
 
-首次进入会强制弹出 API 配置页面，配置完成后即可使用。
+在设置页面选择所需的 AI 模型，然后输入几何题目或上传图片即可开始解题。
 
-## API 配置说明
+## 可用 AI 模型
 
-### OpenAI
+| 模型 ID | 名称 | 特点 |
+|---|---|---|
+| `x-ai/grok-4.1-fast` | Grok 4.1 Fast | 速度快，推理能力强 |
+| `google/gemini-3-flash-preview` | Gemini 3 Flash | 谷歌最新轻量模型 |
+| `google/gemini-3.1-flash-image-preview` | Gemini 3.1 Image | 支持图片输入的多模态模型 |
+| `stepfun/step-3.5-flash` | Step 3.5 Flash | 阶跃星辰轻量推理模型 |
 
-- API Type: `openai`
-- API Key: 你的 OpenAI API Key
-- 模型: `gpt-4` 或 `gpt-3.5-turbo`
+> 推荐使用 `gemini-3.1-flash-image-preview` 处理图片题目。
 
-### Google Gemini
+## 后端 API 接口
 
-- API Type: `gemini`
-- API Key: 你的 Google AI API Key
-- 模型: `gemini-pro` 或 `gemini-pro-vision`
-
-### 字节豆包
-
-- API Type: `doubao`
-- API Key: 你的豆包 API Key
-- API Endpoint: `https://ark.cn-beijing.volces.com/api/v3/chat/completions`
-- 模型: `doubao-pro-32k`
-
-### 自定义 API
-
-- API Type: `custom`
-- API Key: 你的 API Key
-- API Endpoint: 你的 API 端点（兼容 OpenAI 格式）
+| 方法 | 路径 | 描述 |
+|---|---|---|
+| `GET` | `/api/models` | 获取可用 AI 模型列表 |
+| `POST` | `/api/solve` | 提交几何题目进行 AI 解析 |
+| `POST` | `/api/chat` | 流式追问对话（SSE） |
+| `GET` | `/api/history` | 获取历史记录列表 |
+| `GET` | `/api/history/:id` | 获取某条历史记录详情及聊天记录 |
+| `POST` | `/api/history/:id/chats` | 同步某条记录的聊天历史 |
+| `DELETE` | `/api/history/:id` | 删除某条历史记录 |
 
 ## 部署指南
 
-### 前端部署（Vercel）
+### 生产环境部署（Raspberry Pi / Linux 服务器 + PM2）
 
-1. 在 GitHub 上创建仓库并推送代码
-2. 访问 https://vercel.com 并导入项目
-3. 配置：
-   - Framework Preset: `Vite`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-4. 添加环境变量（可选）：
-   - `VITE_API_URL`: 你的后端 API 地址
-5. 部署完成
+项目提供了 `scripts/deploy_pi.sh` 一键部署脚本：
 
-### 后端部署（Render）
+```bash
+# 首次部署
+chmod +x scripts/deploy_pi.sh
+./scripts/deploy_pi.sh main
 
-1. 在 GitHub 上创建仓库并推送代码
-2. 访问 https://render.com 并创建 Web Service
-3. 配置：
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-4. 环境变量：
-   - `PORT`: 3001
-5. 部署完成
+# 后续更新
+./scripts/deploy_pi.sh
+```
 
-### 生产环境配置
+脚本会自动：
+1. 拉取最新代码
+2. 构建前端静态文件
+3. 安装后端依赖
+4. 使用 PM2 启动/重启后端服务（进程名：`mindox`）
 
-由于 Vercel 无法直接部署 Node.js 后端，建议：
+生产模式下后端会自动 serve 前端静态文件，只需暴露 `3001` 端口即可。
 
-**方案 1：分别部署**
-- 前端 → Vercel
-- 后端 → Render/Railway/ Railway/ Cloudflare Workers
+查看日志：
+```bash
+pm2 logs mindox
+```
 
-**方案 2：使用 Vercel Serverless Functions**
-- 将后端代码放在 `api/` 目录
-- Vercel 会自动识别为 Serverless Functions
+### 云平台部署
+
+**前端（Vercel）**
+
+```
+Framework Preset: Vite
+Build Command:    npm run build
+Output Directory: dist
+```
+
+**后端（Render / Railway）**
+
+```
+Build Command: npm install
+Start Command: npm start
+环境变量: HACKCLUB_API_KEY=<your_key>
+         NODE_ENV=production
+```
+
+> 生产环境下设置 `NODE_ENV=production`，后端将自动 serve 前端 `dist/` 目录。
 
 ## 项目结构
 
 ```
-qianwen-class/
-├── frontend/               # Vue3 前端
+Mindox/
+├── frontend/               # Vue 3 前端
 │   ├── src/
-│   │   ├── components/     # 组件
-│   │   ├── stores/        # Pinia 状态
-│   │   ├── styles/        # 样式
-│   │   └── App.vue
+│   │   ├── components/     # GeometryCanvas 等组件
+│   │   ├── index.html
+│   │   ├── App.vue         # 主应用（含全部视图逻辑）
+│   │   └── main.js
 │   └── vite.config.js
 │
 ├── backend/                # Node.js 后端
 │   ├── src/
-│   │   └── index.js       # 主入口
+│   │   ├── db.js           # SQLite 数据库初始化
+│   │   └── index.js        # Express 主入口 & 全部路由
 │   └── package.json
 │
-├── SPEC.md                # 规格文档
-└── README.md              # 本文件
+├── scripts/
+│   └── deploy_pi.sh        # Raspberry Pi / Linux 一键部署脚本
+│
+├── SPEC.md                 # 产品规格文档
+└── README.md               # 本文件
 ```
 
 ## 技术栈
 
-- **前端**：Vue 3 + Vite + Pinia + Axios
-- **后端**：Express + better-sqlite3
-- **几何引擎**：GeoGebra iframe API
+| 层级 | 技术 |
+|---|---|
+| 前端框架 | Vue 3 + Vite + Pinia |
+| HTTP 客户端 | Axios |
+| Markdown 渲染 | marked + DOMPurify |
+| 后端框架 | Express 4 |
+| 数据库 | better-sqlite3（SQLite） |
+| AI 接入 | Hack Club AI Proxy（兼容 OpenAI Chat API） |
+| 进程管理 | PM2（生产环境） |
 
 ## 许可证
 
