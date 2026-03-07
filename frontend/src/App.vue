@@ -25,7 +25,7 @@
     <!-- Initial View -->
     <main v-if="view === 'initial'" class="initial-view">
       <h1 class="main-title">Mindox • 几何智能解题助手</h1>
-      <p class="sub-title">输入几何题目或上传图片，即刻获得专业解析</p>
+      <p class="sub-title">What ya wanna learn today？</p>
       
       <div class="input-wrapper">
         <textarea 
@@ -205,6 +205,18 @@ const availableModels = ref([{ id: 'gpt-4o', name: 'GPT-4o (加载中...)' }])
 const selectedModel = ref('gpt-4o')
 const showAuxLines = ref(true) // 添加辅助线提示的状态
 
+async function fetchHistory() {
+  try {
+    const res = await fetch(`${API_BASE}/history`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    historyList.value = data.history || []
+  } catch (e) {
+    console.error('Fetch history failed', e)
+    historyList.value = []
+  }
+}
+
 // Mobile detection - enhanced
 const isMobile = ref(false)
 const debugMobile = ref(false)
@@ -289,27 +301,55 @@ function handlePaste(e) {
   }
 }
 
-function submitProblem() {
-  // minimal: set solution locally so UI updates
+async function submitProblem() {
   view.value = 'solving'
   isSolving.value = true
   solution.value = null
-  setTimeout(() => {
-    solution.value = {
-      originalProblem: inputText.value || '（来自图片）',
-      problemType: '几何题',
-      difficulty: '中等',
-      svgDrawingSpec: null
+
+  try {
+    const payload = {}
+    if (inputText.value && inputText.value.trim()) payload.problem = inputText.value.trim()
+    if (uploadedImage.value) payload.image = uploadedImage.value
+
+    const res = await fetch(`${API_BASE}/solve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || `HTTP ${res.status}`)
     }
+
+    const data = await res.json()
+    // server returns { id, ...solution }
+    solution.value = data
+    currentProblemId.value = data.id
+
+    // refresh history
+    await fetchHistory()
+  } catch (e) {
+    console.error('Submit problem failed', e)
+    // fallback message
+    solution.value = { originalProblem: inputText.value || '（来自图片）', problemType: '未知', difficulty: '未知', svgDrawingSpec: null, proofSteps: ['解析失败：' + (e.message || '')] }
+  } finally {
     isSolving.value = false
-  }, 600)
+  }
 }
 
-function loadHistoryItem(id) {
-  const item = historyList.value.find(h => h.id === id)
-  if (!item) return
-  inputText.value = item.content || item.title || ''
-  view.value = 'initial'
+async function loadHistoryItem(id) {
+  try {
+    const res = await fetch(`${API_BASE}/history/${id}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    solution.value = data.problem.solution
+    currentProblemId.value = data.problem.id
+    view.value = 'solving'
+    isSolving.value = false
+  } catch (e) {
+    console.error('Load history failed', e)
+  }
 }
 
 function deleteHistoryItem(id) {
@@ -354,6 +394,25 @@ onMounted(() => {
   updateDeviceType()
   window.addEventListener('resize', updateDeviceType)
   window.addEventListener('orientationchange', updateDeviceType)
+
+  // Fetch available models from backend and prefer multimodal/image-capable model by default
+  async function fetchModels() {
+    try {
+      const res = await fetch(`${API_BASE}/models`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      if (data.models && Array.isArray(data.models) && data.models.length > 0) {
+        availableModels.value = data.models
+        // prefer image-capable model if present
+        const imageModel = data.models.find(m => /image|image-preview|image-capable|gemini-3.1|grok/i.test(m.id) )
+        selectedModel.value = (imageModel && imageModel.id) || data.models[0].id
+      }
+    } catch (e) {
+      console.error('Failed to fetch models', e)
+    }
+  }
+
+  fetchModels()
 })
 
 onBeforeUnmount(() => {
