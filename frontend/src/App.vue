@@ -413,6 +413,13 @@ onMounted(() => {
   }
 
   fetchModels()
+  // load history on mount and auto-open latest if exists
+  fetchHistory().then(()=>{
+    if (historyList.value && historyList.value.length>0) {
+      const latest = historyList.value[0]
+      loadHistoryItem(latest.id)
+    }
+  }).catch(e=>console.error('load history on mount failed', e))
 })
 
 onBeforeUnmount(() => {
