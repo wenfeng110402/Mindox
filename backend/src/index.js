@@ -6,6 +6,15 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import db from './db.js';
 
+import fs from 'fs';
+const LOG_PATH = '/var/log/mindox/mindox.log';
+function writeSummary(entry){
+  try{
+    fs.appendFileSync(LOG_PATH, entry + "\n");
+  }catch(e){console.error('Failed to write mindox log',e.message)}
+}
+
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,20 +36,26 @@ if (!HACKCLUB_API_KEY) {
   process.exit(1);
 }
 
-// 预准备一个 axios 实例
+// 预准备一个 axios 实例，增加超时并统一错误处理
 const aiClient = axios.create({
   baseURL: HACKCLUB_API_BASE,
+  timeout: 60000,
   headers: {
     'Authorization': `Bearer ${HACKCLUB_API_KEY}`,
     'Content-Type': 'application/json'
   }
 });
 
+// health check
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
 // 1. 获取可用模型列表
 app.get('/api/models', async (req, res) => {
   try {
     const response = await aiClient.get('/models');
-    
+
     const allowedModelIds = [
       'x-ai/grok-4.1-fast',
       'google/gemini-3-flash-preview',
@@ -49,30 +64,44 @@ app.get('/api/models', async (req, res) => {
     ];
 
     // 从代理端点提取模型信息并精简，只保留指定的四个模型
-    const models = response.data.data
+    const models = (response.data.data || [])
       .filter(m => allowedModelIds.includes(m.id))
       .map(m => ({
         id: m.id,
         name: m.name || m.id
       }));
-      
+
+    // 如果没有拿到远程列表，降级到静态
+    if (!models.length) throw new Error('No remote models');
     res.json({ models });
   } catch (error) {
-    console.error('Error fetching models:', error.message);
+    console.error('Error fetching models:', error.message || error);
     // 降级使用静态列表
     res.json({ 
       models: [
-        { id: 'x-ai/grok-4.1-fast', name: 'Grok 4.1 Fast' },
-        { id: 'google/gemini-3-flash-preview', name: 'Gemini 3 Flash' },
-        { id: 'google/gemini-3.1-flash-image-preview', name: 'Gemini 3.1 Image' },
-        { id: 'stepfun/step-3.5-flash', name: 'Step 3.5 Flash' }
+        { id: 'x-ai/grok-4.1-fast', name: 'xAI: Grok 4.1 Fast' },
+        { id: 'google/gemini-3-flash-preview', name: 'Google: Gemini 3 Flash Preview' },
+        { id: 'google/gemini-3.1-flash-image-preview', name: 'Google: Gemini 3.1 Image Preview' },
+        { id: 'stepfun/step-3.5-flash', name: 'StepFun: Step 3.5 Flash' }
       ]
     });
   }
 });
 
+// helper: call AI with one retry and trace id
+async function callAiWithRetry(payload, traceId) {
+  try {
+    return (await aiClient.post('/chat/completions', payload)).data;
+  } catch (err) {
+    console.warn(`[${traceId}] AI call failed, retrying once:`, err.message || err);
+    // one retry
+    try { return (await aiClient.post('/chat/completions', payload)).data; } catch (err2) { throw err2 }
+  }
+}
+
 // 2. 处理几何解题请求
 app.post('/api/solve', async (req, res) => {
+  const traceId = (globalThis && globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString();
   const { problem, image, model = 'gpt-4o' } = req.body;
 
   if (!problem && !image) {
@@ -80,102 +109,53 @@ app.post('/api/solve', async (req, res) => {
   }
 
   try {
-    const systemPrompt = `你是一个严谨的几何数学解题专家。你的任务是分析用户的几何题目，并将其结构化为高度详细和准确的解题步骤。
-请严格返回如下格式的纯JSON字符串（禁止任何Markdown包裹符号如\`\`\`json，必须是一个可以直接JSON.parse()的纯文本）：
-
-{
-  "originalProblem": "精准复述原题，修正可能的错别字，用规范的数学语言表达",
-  "problemType": "核心考点类型（如：三角形全等、圆周角定理、相似三角形等）",
-  "difficulty": "难度评估（如：基础、进阶、竞赛）",
-  "svgDrawingSpec": {
-    "canvas": { "width": 400, "height": 400 },
-    "coordinate": { "xAxisY": 200, "yAxisX": 200, "scale": 40, "tickInterval": 1, "show": false },
-    "points": [
-      { "id": "A", "x": 200, "y": 50, "label": "A", "labelOffset": { "dx": -15, "dy": 0 } }
-    ],
-    "segments": [
-      { "id": "AB", "start": "A", "end": "B", "type": "solid", "color": "currentColor", "thickness": 2 }
-    ],
-    "curves": [],
-    "circles": [],
-    "arcs": [],
-    "angles": [],
-    "annotations": []
-  },
-  "proofSteps": [
-    "第一步：因为 [条件]（根据 [定理名称]），所以 [结论]。",
-    "第二步：...",
-    "总结：..."
-  ],
-  "knownConditions": ["整理出的已知条件1", "已知条件2"],
-  "derivedConditions": ["基于已知立刻能推导出的直接条件1"],
-  "hiddenConditions": ["图形或定义中隐含的条件（如公共边、对顶角等）"],
-  "auxLines": ["如果需要辅助线，请详细说明其作法（如：连接AB），没有则传空数组"],
-  "fullApproach": [
-    "解题总体思路与突破口",
-    "核心推理链条",
-    "涉及的关键定理"
-  ]
-}
-
-关于 svgDrawingSpec 字段的详细规范：
-- canvas: 画布宽高，推荐 400x400 或 600x500，根据图形复杂度选择。
-- coordinate: 坐标系配置。show=false 时不渲染坐标轴，适合纯几何图形（三角形、圆等）；show=true 时渲染带刻度的坐标轴，适合解析几何。xAxisY/yAxisX 是坐标原点的像素坐标，scale 是每单位长度对应的像素数。
-- points: 点列表。x/y 是像素坐标（直接对应 SVG 坐标系，y 轴向下为正）。label 为点名称，labelOffset 控制标注文字偏移方向（dx/dy 为像素）。
-- segments: 线段列表。start/end 引用 points 中的 id。type 为 "solid" 或 "dashed"。color 使用 "currentColor"（主线），辅助线/动点连线可使用 "#DC2626" (红) 或 "#10A37F" (青色)。
-- curves: 二次曲线（抛物线等）。type="quadratic"，coefficients: {a, b, c} 表示 y = a*x² + b*x + c（注意：坐标需转换到像素空间）。
-- circles: 圆。center 引用 points 的 id，radius 为像素半径。
-- arcs: 圆弧。用于标注角度（如直角标记、角度弧）。
-- angles: 角度标注。
-- annotations: 额外文字标注，可用于标长度、角度值等。
-
-重要规范要求：
-1. **纯JSON格式**：绝对不要在返回结果的前后添加 \`\`\`json 或任何额外说明。
-2. **坐标精度**：points 中的 x/y 是 SVG 画布像素坐标，必须根据几何关系精确计算，确保图形比例正确。例如等腰三角形顶点应在底边的垂直平分线上。
-3. **数学公式格式**：所有的数学公式和变量必须使用标准LaTeX语法：行内公式使用 \\\\( ... \\\\) 包裹，块级公式使用 $$ ... $$ 包裹。（注意在JSON字符串中正确转义反斜杠）。
-4. **严密推理**：推理步骤（proofSteps）必须有严密的逻辑链，不能跳步，说明每个结论的依据。
-5. **异常处理**：即使输入模糊，也尽可能提取几何信息；如果完全不是几何题，请在 originalProblem 中说明，其余字段置空，svgDrawingSpec 设为 null。`;
+    const systemPrompt = `你是一个严谨的几何数学解题专家。你的任务是分析用户的几何题目，并将其结构化为高度详细和准确的解题步骤。请严格返回一个可被 JSON.parse 的纯 JSON 字符串，详见后端文档。`;
 
     let userContent = problem || '请解析这张图片中的几何题目。';
-    
-    // 如果有图片，将 user content 改为多模态格式数组
     if (image) {
       userContent = [
-        { type: "text", text: problem || '请解析这张图片中的几何题目。' },
-        { type: "image_url", image_url: { url: image } }
+        { type: 'text', text: problem || '请解析这张图片中的几何题目。' },
+        { type: 'image_url', image_url: { url: image } }
       ];
     }
 
-    const response = await aiClient.post('/chat/completions', {
+    const payload = {
       model: model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent }
       ],
-      temperature: 0.1 // 较低的temperature保证JSON格式的稳定
-    });
+      temperature: 0.1
+    };
 
-    const aiContent = response.data.choices[0].message.content;
-    
+    console.log(`[${traceId}] Calling AI model ${model}`);
+    const responseData = await callAiWithRetry(payload, traceId);
+
+    const aiContent = responseData.choices && responseData.choices[0] && responseData.choices[0].message && responseData.choices[0].message.content;
+    if (!aiContent) {
+      console.error(`[${traceId}] Empty AI response`, responseData);
+      return res.status(502).json({ error: 'Empty AI response', traceId });
+    }
+
+    // 尝试清理并解析 JSON
+    let jsonStr = aiContent.replace(/```json\n?|\n?```/g, '').trim();
     try {
-      // 尝试清理可能存在的 markdown 标记并解析 JSON
-      const jsonStr = aiContent.replace(/```json\n?|\n?```/g, '').trim();
       const resultData = JSON.parse(jsonStr);
-
-      // 保存到数据库
       const stmt = db.prepare('INSERT INTO problems (problem_text, image_url, solution_json) VALUES (?, ?, ?)');
       const info = stmt.run(problem || '', image || '', JSON.stringify(resultData));
-      
-      // 返回带有数据库ID的解决数据
+      // write summary log
+      try{ writeSummary(JSON.stringify({traceId: traceId, id: info.lastInsertRowid, model: model, problem: (problem||'').slice(0,200)})); }catch(e){}
       res.json({ id: info.lastInsertRowid, ...resultData });
     } catch (parseError) {
-      console.error('JSON Parse Error. Raw string:', aiContent);
-      res.status(500).json({ error: 'AI did not return valid JSON', raw: aiContent });
+      console.error(`[${traceId}] JSON Parse Error. Raw string length=${jsonStr.length}`);
+      // return raw for debugging but include traceId
+      res.status(500).json({ error: 'AI did not return valid JSON', traceId, raw: aiContent.substring(0, 2000) });
+      try{ writeSummary(JSON.stringify({traceId: traceId, model: model, status: 'parse_error', snippet: aiContent.substring(0,300)})); }catch(e){}
     }
 
   } catch (error) {
-    console.error('Solve API Error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to solve problem' });
+    console.error(`[${traceId}] Solve API Error:`, error.response?.data || error.message || error);
+    res.status(500).json({ error: 'Failed to solve problem', traceId });
   }
 });
 
@@ -188,15 +168,7 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    const systemPrompt = `你是一个苏格拉底式的专业几何解题导师。目前用户正在向你请教或追问一道几何题。
-请遵循以下导师准则：
-1. **启发式提问**：不要直接抛出完整答案，而是通过友善的反问或提供线索（如定理提示）来引导用户自己思考（除非用户明确要求直接解答）。
-2. **专业严谨**：解释定理或推理逻辑时，确保数学严密性。使用通俗易懂的语言，适度鼓励。
-3. **完美公式排版**：所有数学公式（包括变量、线段名如AB、角度∠A）**必须且只使用标准LaTeX语法**。
-   - 行内公式使用 \`\\\\( ... \\\\)\` 包裹，例如：由于 \\\\( AB = CD \\\\)
-   - 独立公式块使用 \`$$\\n...\\n$$\` 包裹
-   - 绝对不要使用 \`$...\$\` 或 \`\\[...\\]\`，因为前端可能无法正确渲染。
-4. **简洁清晰**：使用适当的Markdown排版（如加粗、列表）来增加可读性，避免长篇大论。`;
+    const systemPrompt = `你是一个苏格拉底式的专业几何解题导师。目前用户正在向你请教或追问一道几何题。\n请遵循启发式提问并返回流式 SSE 内容。`;
     
     const apiMessages = [
       { role: 'system', content: systemPrompt },
