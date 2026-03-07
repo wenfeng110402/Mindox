@@ -22,8 +22,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone <repo-url>
-cd qianwen-class
+git clone https://github.com/wenfeng110402/Mindox
+cd Mindox
 ```
 
 ### 2. 安装依赖
