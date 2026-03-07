@@ -24,7 +24,7 @@
 
     <!-- Initial View -->
     <main v-if="view === 'initial'" class="initial-view">
-      <h1 class="main-title">Mindox • 几何智能解题助手</h1>
+      <h1 class="main-title">Mindox</h1>
       <p class="sub-title">What ya wanna learn today？</p>
       
       <div class="input-wrapper">
