@@ -1,4 +1,4 @@
-# Mindox - AI 几何智能解题助手
+# Mindox - AI 几何智能解题助手（该项目已放弃维护）
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue3-Vite-blue" alt="Vue3+Vite">
